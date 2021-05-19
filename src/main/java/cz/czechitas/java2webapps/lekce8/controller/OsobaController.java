@@ -1,6 +1,8 @@
 package cz.czechitas.java2webapps.lekce8.controller;
 
 import cz.czechitas.java2webapps.lekce8.entity.Osoba;
+import cz.czechitas.java2webapps.lekce8.repository.OsobaRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -13,15 +15,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.validation.Valid;
-import java.time.LocalDate;
-import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class OsobaController {
 
-  private final List<Osoba> seznamOsob = List.of(
-          new Osoba(1L, "Božena", "Němcová", LocalDate.of(1820, 2, 4), "Vídeň", null, null)
-  );
+  private final OsobaRepository repository;
+
+  @Autowired
+  public OsobaController(OsobaRepository repository) {
+    this.repository = repository;
+  }
 
   @InitBinder
   public void nullStringBinding(WebDataBinder binder) {
@@ -31,9 +35,9 @@ public class OsobaController {
 
   @GetMapping("/")
   public Object seznam() {
-    //TODO načíst seznam osob
+    Iterable<Osoba> seznam = repository.findAll();
     return new ModelAndView("seznam")
-            .addObject("osoby", seznamOsob);
+            .addObject("osoby", seznam);
   }
 
   @GetMapping("/novy")
@@ -47,15 +51,18 @@ public class OsobaController {
     if (bindingResult.hasErrors()) {
       return "detail";
     }
-    //TODO uložit údaj o nové osobě
+    repository.save(osoba);
     return "redirect:/";
   }
 
   @GetMapping("/{id:[0-9]+}")
   public Object detail(@PathVariable long id) {
-    //TODO načíst údaj o osobě
-    return new ModelAndView("detail")
-            .addObject("osoba", seznamOsob.get(0));
+    Optional<Osoba> osoba = repository.findById(id);
+    if(osoba.isPresent()) {
+      return new ModelAndView("detail")
+              .addObject("osoba", osoba.get());
+    }
+    return null;
   }
 
   @PostMapping("/{id:[0-9]+}")
@@ -63,13 +70,13 @@ public class OsobaController {
     if (bindingResult.hasErrors()) {
       return "detail";
     }
-    //TODO uložit údaj o osobě
+    repository.save(osoba);
     return "redirect:/";
   }
 
   @PostMapping(value = "/{id:[0-9]+}", params = "akce=smazat")
   public Object smazat(@PathVariable long id) {
-    //TODO smazat údaj o osobě
+    repository.deleteById(id);
     return "redirect:/";
   }
 
